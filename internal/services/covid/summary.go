@@ -12,7 +12,7 @@ import (
 	"github.com/Natt-S10/LMWN-assesment/internal/repository"
 )
 
-func FetchCovidStats() repository.CovidStat {
+func FetchCovidStats() (repository.CovidStat, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -23,7 +23,7 @@ func FetchCovidStats() repository.CovidStat {
 
 	if err != nil {
 		fmt.Println("Couldn't fetch covid status")
-		fmt.Println(err)
+		return repository.CovidStat{}, err
 	}
 	defer res.Body.Close()
 
@@ -32,9 +32,10 @@ func FetchCovidStats() repository.CovidStat {
 	var covidStat repository.CovidStat
 	if err := json.Unmarshal(body, &covidStat); err != nil {
 		fmt.Println("Can't unmarshall covid stat")
+		return repository.CovidStat{}, err
 	}
 
-	return covidStat
+	return covidStat, nil
 }
 
 func summarizeStat(covidStat repository.CovidStat) covid.CovidSummary {
@@ -69,7 +70,13 @@ func summarizeStat(covidStat repository.CovidStat) covid.CovidSummary {
 }
 
 func GetCovidSummary() covid.CovidSummary {
-	covidStat := FetchCovidStats()
+	covidStat, err := FetchCovidStats()
+	if err != nil {
+		fmt.Println("Can't fetch covid stat")
+		fmt.Println(err)
+		return covid.CovidSummary{}
+	}
+
 	covidSummary := summarizeStat(covidStat)
 	// fmt.Println(covidSummary)
 	return covidSummary

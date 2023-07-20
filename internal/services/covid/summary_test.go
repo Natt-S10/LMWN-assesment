@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Natt-S10/LMWN-assesment/config"
 	"github.com/Natt-S10/LMWN-assesment/internal/models/covid"
 	"github.com/Natt-S10/LMWN-assesment/internal/repository"
 	"github.com/go-playground/assert/v2"
@@ -29,6 +30,19 @@ const testingJSON = `{
             "ConfirmDate": "2021-05-01",
             "No": null,
         	"Age": 51,
+            "Gender": "ชาย",
+            "GenderEn": "Male",
+            "Nation": null,
+            "NationEn": "India",
+            "Province": "Suphan Buri",
+            "ProvinceId": 65,
+            "District": null,
+            "StatQuarantine": 8
+        },
+        {
+            "ConfirmDate": "2021-05-01",
+            "No": null,
+        	"Age": 28,
             "Gender": "ชาย",
             "GenderEn": "Male",
             "Nation": null,
@@ -85,13 +99,13 @@ const testingJSON = `{
 
 func TestSummarizeStat(t *testing.T) {
 	expected := covid.CovidSummary{
-		AgeGroup: covid.AgeGroup{Young: 0, Middle: 2, Old: 2, NA: 1},
+		AgeGroup: covid.AgeGroup{Young: 1, Middle: 2, Old: 2, NA: 1},
 		Province: make(map[string]int),
 	}
 	expected.Province["Bangkok"] = 1
 	expected.Province["Chumphon"] = 1
 	expected.Province["Roi Et"] = 1
-	expected.Province["N/A"] = 1
+	expected.Province["N/A"] = 2
 	expected.Province["Phrae"] = 1
 
 	var raw repository.CovidStat
@@ -101,4 +115,31 @@ func TestSummarizeStat(t *testing.T) {
 
 	actual := summarizeStat(raw)
 	assert.Equal(t, expected, actual)
+}
+
+func TestFetchCovidStats(t *testing.T) {
+	actual, err := FetchCovidStats()
+	assert.Equal(t, err, nil)
+	assert.NotEqual(t, actual, repository.CovidStat{})
+
+	// set the config.COVID_STAT_API to a wrong url
+	config.COVID_STAT_API = "https://wrong.url.pleasedontfindthisdomain"
+	defer func() {
+		config.COVID_STAT_API = "https://static.wongnai.com/devinterview/covid-cases.json"
+	}()
+	// assert exception
+	actual, err = FetchCovidStats()
+	assert.NotEqual(t, err, nil)
+	assert.Equal(t, actual, repository.CovidStat{})
+}
+
+func TestGetCovidSummary(t *testing.T) {
+	actual := GetCovidSummary()
+	assert.NotEqual(t, actual, covid.CovidSummary{})
+
+	// set the config.COVID_STAT_API to a wrong url
+	config.COVID_STAT_API = "https://wrong.url.pleasedontfindthisdomain"
+	// assert exception
+	actual = GetCovidSummary()
+	assert.Equal(t, actual, covid.CovidSummary{})
 }
